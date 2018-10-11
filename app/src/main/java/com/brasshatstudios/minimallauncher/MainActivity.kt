@@ -1,5 +1,6 @@
 package com.brasshatstudios.minimallauncher
 
+import android.content.Intent
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 
@@ -8,11 +9,8 @@ import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentPagerAdapter
 import android.support.v4.view.ViewPager
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
+import android.widget.Button
 
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_main.view.*
@@ -31,43 +29,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.decorView.apply {
+            systemUiVisibility = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION //or View.SYSTEM_UI_FLAG_FULLSCREEN
+        }
         setContentView(R.layout.activity_main)
 
-        setSupportActionBar(toolbar)
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
         mSectionsPagerAdapter = SectionsPagerAdapter(supportFragmentManager)
 
         // Set up the ViewPager with the sections adapter.
         container.adapter = mSectionsPagerAdapter
-
-        fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-        }
-
     }
-
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        val id = item.itemId
-
-        if (id == R.id.action_settings) {
-            return true
-        }
-
-        return super.onOptionsItemSelected(item)
-    }
-
 
     /**
      * A [FragmentPagerAdapter] that returns a fragment corresponding to
@@ -78,12 +51,38 @@ class MainActivity : AppCompatActivity() {
         override fun getItem(position: Int): Fragment {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            return PlaceholderFragment.newInstance(position + 1)
+            return AllAppsFragment()
         }
 
         override fun getCount(): Int {
             // Show 3 total pages.
-            return 3
+            return 2
+        }
+    }
+
+    class AllAppsFragment : Fragment() {
+        override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
+                                  savedInstanceState: Bundle?): View? {
+            var pm = context.packageManager;
+            var intent: Intent = Intent(Intent.ACTION_MAIN, null)
+            intent.addCategory(Intent.CATEGORY_LAUNCHER)
+
+            var apps = pm.queryIntentActivities(intent, 0)
+            apps = apps.sortedWith(compareBy({ it.loadLabel(pm).toString() }))
+            val rootView = inflater.inflate(R.layout.fragment_main, container, false)
+            for (app in apps) {
+                var appInfo = AppInfo(app.loadLabel(pm), app.activityInfo)
+                var button = Button(context)
+                button.textAlignment = View.TEXT_ALIGNMENT_GRAVITY
+                button.gravity = Gravity.LEFT
+                button.text = appInfo.label
+                button.setTextColor(resources.getColor(R.color.colorAccent))
+                button.setBackgroundColor(resources.getColor(android.R.color.transparent))
+                button.setOnClickListener({ view: View -> context.startActivity(appInfo.intent) })
+                rootView.MainAppContainer.addView(button)
+            }
+
+            return rootView
         }
     }
 
@@ -95,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                                   savedInstanceState: Bundle?): View? {
             val rootView = inflater.inflate(R.layout.fragment_main, container, false)
-            rootView.section_label.text = getString(R.string.section_format, arguments.getInt(ARG_SECTION_NUMBER))
             return rootView
         }
 
